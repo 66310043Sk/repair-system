@@ -214,8 +214,15 @@ else:
     CORS_ALLOW_CREDENTIALS = True
 
 # Security Settings for Production
+# Railway handles SSL termination, so we don't need SECURE_SSL_REDIRECT
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # Railway proxy settings
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_PORT = True
+    
+    # Security settings (but NOT SSL redirect)
+    SECURE_SSL_REDIRECT = False  # Railway handles SSL
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
