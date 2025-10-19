@@ -15,12 +15,18 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-7q0hvy(x(n3_#icpcma0%
 # DEBUG MODE
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# ALLOWED HOSTS
-ALLOWED_HOSTS = config(
-    'ALLOWED_HOSTS',
-    default='repair-system-production.up.railway.app,*.railway.app,localhost,127.0.0.1',
-    cast=Csv()
-)
+# ALLOWED HOSTS - สำคัญมาก!
+ALLOWED_HOSTS = [
+    'repair-system-production.up.railway.app',
+    '.railway.app',  # ใช้ . ข้างหน้าเพื่อ match subdomain ทั้งหมด
+    'localhost',
+    '127.0.0.1',
+    '.up.railway.app',  # เพิ่มเพื่อ match ทุก subdomain
+]
+
+# ถ้าใช้ environment variable
+if config('ALLOWED_HOSTS', default=None):
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
