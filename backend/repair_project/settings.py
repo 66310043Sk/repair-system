@@ -13,20 +13,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-7q0hvy(x(n3_#icpcma0%7!11ygqn$99=aob8ybjgqfdvmb!m^')
 
 # DEBUG MODE
-DEBUG = config('DEBUG', default=False, cast=bool)
+# เปิดชั่วคราวเพื่อดู error (ปิดก่อน production!)
+DEBUG = config('DEBUG', default=True, cast=bool)  # ชั่วคราว!
 
-# ALLOWED HOSTS - สำคัญมาก!
+# ALLOWED HOSTS - รองรับทุก subdomain ของ Railway
 ALLOWED_HOSTS = [
     'repair-system-production.up.railway.app',
-    '.railway.app',  # ใช้ . ข้างหน้าเพื่อ match subdomain ทั้งหมด
+    '.railway.app',
+    '.up.railway.app',
     'localhost',
     '127.0.0.1',
-    '.up.railway.app',  # เพิ่มเพื่อ match ทุก subdomain
+    '*',  # ชั่วคราว สำหรับ debug (ลบออกใน production!)
 ]
-
-# ถ้าใช้ environment variable
-if config('ALLOWED_HOSTS', default=None):
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -108,17 +106,34 @@ TIME_ZONE = 'Asia/Bangkok'
 USE_I18N = True
 USE_TZ = True
 
-# Static files - เร็วสุดสำหรับ Railway
+# Static files - แก้ปัญหา manifest error
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# ไม่บีบอัด static files ตอน build (เร็วกว่ามาก!)
+# ใช้ WhiteNoise แบบไม่บีบอัด (แก้ปัญหา manifest)
 if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        },
+    }
 else:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
-# ไม่มี STATICFILES_DIRS ใน production
+# Whitenoise settings
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = DEBUG
+WHITENOISE_MANIFEST_STRICT = False  # สำคัญ! ไม่ให้ error ถ้าไฟล์หาย
 
 # Media files
 MEDIA_URL = '/media/'
@@ -193,17 +208,36 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     
-# Logging สำหรับ production
+# Logging สำหรับ production - แสดง error ทั้งหมด
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'root': {
         'handlers': ['console'],
         'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
